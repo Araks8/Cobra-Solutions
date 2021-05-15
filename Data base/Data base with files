@@ -1,0 +1,328 @@
+#include <iostream>
+#include <string>
+#include <cstring>
+#include <vector>
+#include <fstream>
+
+void main_function();
+void create_file(std::string file_name, std::vector<std::string>);
+void insert(std::vector<std::string>);
+void read(std::vector<std::string>,std::string file_name);
+void update(std::vector<std::string>,std::string file_name);
+void delete_(std::vector<std::string>,std::string file_name);
+void drop(std::string file_name);
+
+const std::string EXIT_COMMAND = "exit";
+const std::string CREATE_COMMAND = "create";
+const std::string READ_COMMAND = "read";
+const std::string INSERT_COMMAND = "insert";
+const std::string UPDATE_COMMAND = "update";
+const std::string DELETE_COMMAND = "delete";
+const std::string DROP_COMMAND = "drop";
+
+int ix = 1;
+
+struct all_the_files
+{
+	std::string fileName;
+	int id;
+	int number_of_data;
+	std::vector<std::string> data;
+};
+
+std::vector<all_the_files> files;
+
+int main() {
+	main_function();
+	return 0;
+}
+
+void main_function()
+{
+	std::string query;
+	std::string line = "";
+	std::vector<std::string> token;
+	while (query != EXIT_COMMAND)
+	{
+		getline(std::cin, query);
+		int i = 0;
+		while (i < query.size())
+		{
+			if (query[i] != ' ' && query[i] != '(' && query[i] != ',' && query[i] != ')')
+			{
+				line += query[i];
+				++i;
+				if (i == query.size())
+				{
+					token.push_back(line);
+				}
+			}
+			else
+			{
+				if (line == "\0")
+				{
+					++i;
+					continue;
+				}
+				token.push_back(line);
+				++i;
+				line = "";
+			}
+		}
+		if (token.size() != 0 && token[0] == CREATE_COMMAND)
+		{
+			
+			create_file(token[1], token);
+
+		}
+		else if (token.size() != 0 && token[0] == READ_COMMAND)
+		{
+			read(token, token[1]);
+
+		}
+		else if (token.size() != 0 && token[0] == INSERT_COMMAND)
+		{
+			insert(token);
+
+		}
+		else if (token.size() != 0 && token[0] == UPDATE_COMMAND)
+		{
+			update(token, token[1]);
+
+		}
+		else if (token.size() != 0 && token[0] == DELETE_COMMAND)
+		{
+			delete_(token, token[1]);
+		}
+		else if (token.size() != 0 && token[0] == DROP_COMMAND)
+		{
+			drop(token[1]);
+		}
+		else if (token.size() != 0 && token[0] == EXIT_COMMAND)
+		{
+			continue;
+		}
+		else
+		{
+			std::cout << "No such command." << std::endl;
+		}
+		while (!token.empty())
+		{
+			token.pop_back();
+		}
+		line = "";
+	}
+
+}
+
+void create_file(std::string file_name, std::vector<std::string> token)
+{
+	int i = 0;
+	for (; i < files.size(); ++i)
+	{
+		if (token[1] == files[i].fileName)
+		{
+			std::cout << "Can't create an enitity with the same name.";
+			return;
+		}
+	}
+	std::string str="";
+	std::fstream file(file_name+".txt",std::ios::in | std::ios::out | std::ios::trunc);
+	all_the_files temp;
+	temp.fileName = file_name;
+	temp.id = ix++;
+	for (int i = 2; i < token.size(); ++i)
+	{
+		temp.data.push_back(token[i]);
+	}
+	files.push_back(temp);
+}
+
+void insert(std::vector<std::string>token)
+{
+	int i = 0;
+	int j = 0;
+	if (files.size() == 0)
+	{
+		std::cout << "There is no such file." << std::endl;
+		return;
+	}
+	for ( ; i < files.size(); ++i)
+	{
+		if (token[1] == files[i].fileName)
+		{
+			break;
+		}
+	}
+	std::ofstream some_file(token[1] + ".txt", std::ios::app);
+	for (; j < files[i].data.size()-1; ++j)
+	{
+		some_file << files[i].data[j] << ":" << token[j+2]<<" | ";
+	}
+	some_file << files[i].data[j] << ":" << token[j + 2]<<std::endl;
+}
+
+void read(std::vector<std::string> token,std::string file_name)
+{
+	int i = 0;
+	bool is_true = false;
+	bool is_false = true;
+	int result=-1;
+	std::string line = "";
+	int jx = 0;
+
+	if (token[2] == "where")
+	{
+		for (; i < files.size(); ++i)
+		{
+			if (token[1] == files[i].fileName)
+			{
+				is_true = true;
+			}
+		}
+		if (!is_true)
+		{
+			std::cout << "No such file."<<std::endl;
+			return;
+		}
+		else
+		{
+			std::ifstream file(file_name + ".txt");
+			file.seekg(std::ios::beg);
+			while (!file.eof())
+			{
+				getline(file, line);
+				result=line.find(token[token.size() - 1]);
+				if (result >= 0 && result < line.size())
+				{
+					std::cout << line<<std::endl;
+					is_false = false;
+				}
+			}
+			if (is_false)
+			{
+				std::cout << "There is no such data."<<std::endl;
+			}
+		}
+	}
+	else
+	{
+		std::cout << "Wrong syntax."<<std::endl;
+	}
+}
+
+void update(std::vector<std::string> token, std::string file_name)
+{
+	std::fstream file(file_name + ".txt", std::ios::in | std::ios::out);
+	file.seekg(std::ios::beg);
+	std::vector<std::string> vec;
+	int i = 0;
+	bool is_true = false;
+	int result = -1;
+	std::string line = "";
+	int ix = 4;
+
+	if (token[2] == "where")
+	{
+		for (; i < files.size(); ++i)
+		{
+			if (token[1] == files[i].fileName)
+			{
+				is_true = true;
+			}
+		}
+		if (!is_true)
+		{
+			std::cout << "No such file." << std::endl;
+			return;
+		}
+		else
+		{
+			while (!file.eof())
+			{
+				getline(file, line);
+				result = line.find(token[ix-1]);
+				if (result >= 0 && result < line.size())
+				{
+					for (int k = result,l=0; k < result+token[ix].size(); ++k)
+					{
+						line[k] = token[ix][l++];
+					}
+				}
+				vec.push_back(line);
+			}
+		}
+
+	}
+	file.close();
+	file.open(file_name + ".txt", std::ios::out);
+	for (int k = 0; k < vec.size(); ++k)
+	{
+		file << vec[k]<<std::endl;
+	}
+
+}
+
+void delete_(std::vector<std::string> token, std::string file_name)
+{
+	std::fstream file(file_name + ".txt", std::ios::in | std::ios::out);
+	file.seekg(std::ios::beg);
+	std::vector<std::string> vec;
+	int i = 0;
+	bool is_true = false;
+	int result = -1;
+	std::string line = "";
+	int jx = 0;
+
+	if (token[2] == "where")
+	{
+		for (; i < files.size(); ++i)
+		{
+			if (token[1] == files[i].fileName)
+			{
+				is_true = true;
+			}
+		}
+		if (!is_true)
+		{
+			std::cout << "No such file." << std::endl;
+			return;
+		}
+		else
+		{
+			while (!file.eof())
+			{
+				getline(file, line);
+				result = line.find(token[token.size() - 1]);
+				if (result >= 0 && result < line.size())
+				{
+					continue;
+				}
+				vec.push_back(line);
+			}
+		}
+
+	}
+	file.close();
+	file.open(file_name + ".txt", std::ios::out);
+	while (jx < vec.size())
+	{
+		file << vec[jx]<<std::endl;
+		++jx;
+	}
+	file.close();
+}
+
+void drop(std::string file_name)
+{
+	for (int i = 0; i < files.size(); ++i)
+	{
+		if (file_name == files[i].fileName)
+		{
+			file_name += ".txt";
+			remove(file_name.c_str());
+			return;
+		}
+	}
+	std::cout << "No such file."<<std::endl;
+}
